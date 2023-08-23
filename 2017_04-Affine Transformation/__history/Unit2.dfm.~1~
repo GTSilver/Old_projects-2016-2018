@@ -1,0 +1,61 @@
+object Form2: TForm2
+  Left = 772
+  Top = 140
+  Width = 376
+  Height = 500
+  BorderStyle = bsSizeToolWin
+  Caption = 'Settings'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Shape1: TShape
+    Left = 0
+    Top = 0
+    Width = 361
+    Height = 41
+  end
+  object Label1: TLabel
+    Left = 8
+    Top = 8
+    Width = 95
+    Height = 13
+    Caption = #1059#1075#1086#1083' '#1090#1086#1095#1082#1080' '#1079#1088#1077#1085#1080#1103
+    Color = clWhite
+    ParentColor = False
+  end
+  object Label2: TLabel
+    Left = 168
+    Top = 8
+    Width = 126
+    Height = 13
+    Caption = #1044#1072#1083#1100#1085#1086#1089#1090#1100' '#1090#1086#1095#1082#1080' '#1079#1088#1077#1085#1080#1103
+    Color = clWhite
+    ParentColor = False
+  end
+  object SpinEdit1: TSpinEdit
+    Left = 112
+    Top = 8
+    Width = 49
+    Height = 22
+    MaxValue = 0
+    MinValue = 0
+    TabOrder = 0
+    Value = 0
+  end
+  object SpinEdit2: TSpinEdit
+    Left = 304
+    Top = 8
+    Width = 49
+    Height = 22
+    MaxValue = 0
+    MinValue = 0
+    TabOrder = 1
+    Value = 5
+  end
+end

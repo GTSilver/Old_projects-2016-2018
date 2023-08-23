@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1472160741 source:c:\users\gtsilver\desktop\generator\main.cpp
+	<iostream>
+	<math.h>
+	<cmath>
+

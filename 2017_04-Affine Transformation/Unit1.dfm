@@ -1,0 +1,20 @@
+object Form1: TForm1
+  Left = -1
+  Top = 121
+  Width = 631
+  Height = 631
+  BorderStyle = bsSizeToolWin
+  Caption = 'Visualization'
+  Color = clWhite
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  OnPaint = FormPaint
+  OnResize = FormResize
+  PixelsPerInch = 96
+  TextHeight = 13
+end

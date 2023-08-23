@@ -1,0 +1,106 @@
+///////////////////////////////////////
+//  Автор: Клящицкий Виталий         //
+//  E-mail: Klesh_7_30@mail.ru       //
+//-----------------------------------//
+//  Премер ко 2-му уроку OpenGL      //
+// для сайта http://www.thedelphi.ru //
+///////////////////////////////////////
+
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, OpenGL;
+
+type
+  TForm1 = class(TForm)
+    procedure FormCreate(Sender: TObject);
+    procedure FormPaint(Sender: TObject);
+    procedure FormResize(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+  HRC : HGLRC ;
+  angle: single;
+implementation
+
+{$R *.dfm}
+
+procedure SetDCPixelFormat ( hdc : HDC );
+ var
+  pfd : TPixelFormatDescriptor;
+  nPixelFormat : Integer;
+ begin
+  FillChar (pfd, SizeOf (pfd), 0);
+  pfd.dwFlags  := PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL or PFD_DOUBLEBUFFER;
+   nPixelFormat := ChoosePixelFormat (hdc, @pfd);
+  SetPixelFormat (hdc, nPixelFormat, @pfd);
+ end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  SetDCPixelFormat(Canvas.Handle);
+  hrc := wglCreateContext(Canvas.Handle);
+  wglMakeCurrent(Canvas.Handle, hrc);
+  glEnable(GL_DEPTH_TEST); // включаем проверку разрешения фигур (впереди стоящая закрывает фигуру за ней)
+  glDepthFunc(GL_LEQUAL);  //тип проверки
+end;
+
+procedure TForm1.FormPaint(Sender: TObject);
+begin
+  FormResize(Sender); //процедура обновления
+  
+  if GetAsyncKeyState(VK_LEFT)<>0 then angle:=angle+0.5;
+  if GetAsyncKeyState(VK_RIGHT)<>0 then angle:=angle-0.5;
+
+  glRotatef(angle,0,0,1);
+
+ glClearColor (0.5, 0.5, 0.75, 1.0); // цвет фона
+ glClear (GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT); // очистка буфера цвета
+
+glPointSize(20);  //размер точки
+glBegin(GL_POINTS);
+glColor3f(1,0,0);  glVertex3f(-2,5,1);
+glEnd;
+
+glBegin(GL_LINES); //рисуем линию
+glColor3f(1,0,0); {раскрасим первую вершину}    glVertex3f(-1,0,1); //позиция первой вершины
+glColor3f(0,1,0); {раскрасим вторую вершину}    glVertex3f(-4,5,1); //позиция второй вершины
+glEnd;
+
+glBegin(GL_TRIANGLES); //рисуем треугольник
+glColor3f(1,0,0);  glVertex3f(0,5,1); //первая вершина
+glColor3f(0,1,0);  glVertex3f(1,4,1); //вторая вершина
+glColor3f(0,1,0);  glVertex3f(-1,4,1); //третья вершина
+glEnd;
+
+glBegin(GL_QUADS); //рисуем квадрат
+glColor3f(1,0,0);  glVertex3i(-1,1,0); //первая вершина
+glColor3f(0,1,0);  glVertex3f(1,1,-0); //вторая вершина
+glColor3f(0,1,1);  glVertex3f(1,-1,-0); //третья вершина
+glColor3f(0,0,1);  glVertex3f(-1,-1,0); //четвёртая вершина
+glEnd;
+
+SwapBuffers(Canvas.Handle);
+end;
+
+procedure TForm1.FormResize(Sender: TObject);
+begin
+  glViewport(0, 0, ClientWidth, ClientHeight); //выделяем область куда будет выводиться наш буфер
+  glMatrixMode ( GL_PROJECTION ); //переходим в матрицу проекции
+  glLoadIdentity;  //Сбрасываем текущую матрицу
+  glFrustum ( -1 , 1 , -1 , 1 , 1.25 , 100.0 ); //Область видимости
+  glMatrixMode ( GL_MODELVIEW ); //переходим в модельную матрицу
+  glLoadIdentity;//Сбрасываем текущую матрицу
+  gluLookAt(5,5,5,0,0,0,0,0,1);  //позиция наблюдателя
+  InvalidateRect ( Handle,nil,False );  //перерисовка формы
+end;
+
+end.

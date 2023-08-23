@@ -1,0 +1,250 @@
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, OpenGL, ExtCtrls, Menus, StdCtrls, Spin;
+
+type
+  TForm1 = class(TForm)
+    procedure FormCreate(Sender: TObject);
+    procedure FormPaint(Sender: TObject);
+    procedure FormResize(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+  HRC : HGLRC;
+  angle: single;
+  Dist,Grad,Dx,Dy,Dz,XZero,YZero,ZZero: real;
+  W,S,Pl : integer;
+
+implementation
+
+uses Unit2;
+
+{$R *.dfm}
+//координаты в интеджере. Предлагается умножать координаты на много и округлять при изменении матрицы
+///////////////////////////////////////////////////////////////////////////
+procedure SetDCPixelFormat ( hdc : HDC );
+ var
+  pfd : TPixelFormatDescriptor;
+  nPixelFormat : Integer;
+ begin
+  FillChar (pfd, SizeOf (pfd), 0);
+  pfd.dwFlags  := PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL or PFD_DOUBLEBUFFER;
+  nPixelFormat := ChoosePixelFormat (hdc, @pfd);
+  SetPixelFormat (hdc, nPixelFormat, @pfd);
+ end;
+///////////////////////////////////////////////////////////////////////////
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+S := 100;
+Pl := 1;
+XZero := 1;
+YZero := 0;
+ZZero := 1;
+//-------------------------------------------------------------------------
+  Cube[1,1]:=1;  Cube[1,2]:=-1; Cube[1,3]:=-1; Cube[1,4]:=1;
+  Cube[2,1]:=1;  Cube[2,2]:=1;  Cube[2,3]:=-1; Cube[2,4]:=1;
+  Cube[3,1]:=1;  Cube[3,2]:=1;  Cube[3,3]:=1;  Cube[3,4]:=1;
+  Cube[4,1]:=1;  Cube[4,2]:=-1; Cube[4,3]:=1;  Cube[4,4]:=1;
+  Cube[5,1]:=-1; Cube[5,2]:=-1; Cube[5,3]:=-1; Cube[5,4]:=1;
+  Cube[6,1]:=-1; Cube[6,2]:=1;  Cube[6,3]:=-1; Cube[6,4]:=1;
+  Cube[7,1]:=-1; Cube[7,2]:=1;  Cube[7,3]:=1;  Cube[7,4]:=1;
+  Cube[8,1]:=-1; Cube[8,2]:=-1; Cube[8,3]:=1;  Cube[8,4]:=1;
+//-------------------------------------------------------------------------
+  T[1,1]:=0; T[1,2]:=0; T[1,3]:=0; T[1,4]:=0;
+  T[2,1]:=0; T[2,2]:=0; T[2,3]:=0; T[2,4]:=0;
+  T[3,1]:=0; T[3,2]:=0; T[3,3]:=0; T[3,4]:=0;
+  T[4,1]:=0; T[4,2]:=0; T[4,3]:=0; T[4,4]:=0;
+//-------------------------------------------------------------------------
+  C[1,1]:=1;  C[1,2]:=-1; C[1,3]:=-1; C[1,4]:=1;
+  C[2,1]:=1;  C[2,2]:=1;  C[2,3]:=-1; C[2,4]:=1;
+  C[3,1]:=1;  C[3,2]:=1;  C[3,3]:=1;  C[3,4]:=1;
+  C[4,1]:=1;  C[4,2]:=-1; C[4,3]:=1;  C[4,4]:=1;
+  C[5,1]:=-1; C[5,2]:=-1; C[5,3]:=-1; C[5,4]:=1;
+  C[6,1]:=-1; C[6,2]:=1;  C[6,3]:=-1; C[6,4]:=1;
+  C[7,1]:=-1; C[7,2]:=1;  C[7,3]:=1;  C[7,4]:=1;
+  C[8,1]:=-1; C[8,2]:=-1; C[8,3]:=1;  C[8,4]:=1;
+//-------------------------------------------------------------------------
+  SetDCPixelFormat(Canvas.Handle);
+  hrc := wglCreateContext(Canvas.Handle);
+  wglMakeCurrent(Canvas.Handle, hrc);
+  glEnable(GL_DEPTH_TEST); // включаем проверку разрешения фигур (впереди стоящая закрывает фигуру за ней)
+  glDepthFunc(GL_LEQUAL);  //тип проверки
+end;
+///////////////////////////////////////////////////////////////////////////
+procedure TForm1.FormPaint(Sender: TObject);
+begin
+//-------------------------------------------------------------------------
+  if (form2.SpinEdit1.Text = '') OR (form2.SpinEdit1.Text = '-')then form2.SpinEdit1.Value := 0; //устранение ошибки пустоты
+  if (form2.SpinEdit2.Text = '') OR (form2.SpinEdit2.Text = '-') then form2.SpinEdit2.Value := 0; //устранение ошибки пустоты
+//-------------------------------------------------------------------------
+  Dist := form2.SpinEdit2.Value;
+  if Dist < 0 then form2.SpinEdit2.Value :=0;
+//-------------------------------------------------------------------------
+  if(Form1.Height > Form1.Width) OR (Form1.Height < Form1.Width)  //Сохранение пропорций
+  then
+  Form1.Width := Form1.Height;
+//-------------------------------------------------------------------------
+  Form2.Show;                             //Отображение формы настроек
+  Form2.Height := Form1.Height;           //Привязка высоты двух форм
+  form2.Width := 393;                     //фиксация ширины окна настроек
+  Form2.Top := Form1.Top;                 //Привязка форм по вертикальной границе
+  Form2.Left := Form1.Left + Form1.Width; //Привязка форм по горизонтальной границе
+//-------------------------------------------------------------------------
+  angle:=form2.SpinEdit1.Value;
+//-------------------------------------------------------------------------
+  FormResize(Sender); //процедура обновления
+//-------------------------------------------------------------------------
+  if GetAsyncKeyState(VK_LEFT)  <> 0 then angle := angle + 0.5;
+  if GetAsyncKeyState(VK_RIGHT) <> 0 then angle := angle - 0.5;
+//-------------------------------------------------------------------------
+  glRotatef(angle,0,0,1);
+//-------------------------------------------------------------------------
+  glClearColor (0.76, 0.85, 1, 1.0); // цвет фона
+  glClear (GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT); // очистка буфера цвета
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0.7,0,0); {раскрасим первую вершину}    glVertex3f(1000 * S,0,0); //позиция первой вершины
+  glColor3f(0.7,0,0); {раскрасим вторую вершину}    glVertex3f(-1000 * S,0,0); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0.7,0); {раскрасим первую вершину}    glVertex3f(0,1000 * S,0); //позиция первой вершины
+  glColor3f(0,0.7,0); {раскрасим вторую вершину}    glVertex3f(0,-1000 * S,0); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0.7); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(0,0,1000 * S); //позиция первой вершины
+  glColor3f(0,0,0.7); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(0,0,-1000 * S); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+if(Pl = 1) then
+begin
+  glBegin(GL_QUADS); //рисуем нижнюю плоскость
+  glColor3f(1,0,0);  glVertex3i(Round(C[1,1] * S),Round(C[1,2] * S),Round(C[1,3] * S)); //первая вершина
+  glColor3f(1,0,0);  glVertex3f(Round(C[2,1] * S),Round(C[2,2] * S),Round(C[2,3] * S)); //вторая вершина
+  glColor3f(1,0,0);  glVertex3f(Round(C[3,1] * S),Round(C[3,2] * S),Round(C[3,3] * S)); //третья вершина
+  glColor3f(1,0,0);  glVertex3f(Round(C[4,1] * S),Round(C[4,2] * S),Round(C[4,3] * S)); //четвёртая вершина
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_QUADS); //рисуем верхнюю плоскость
+  glColor3f(0,1,0);  glVertex3i(Round(C[3,1] * S),Round(C[3,2] * S),Round(C[3,3] * S)); //первая вершина
+  glColor3f(0,1,0);  glVertex3f(Round(C[4,1] * S),Round(C[4,2] * S),Round(C[4,3] * S)); //вторая вершина
+  glColor3f(0,1,0);  glVertex3f(Round(C[8,1] * S),Round(C[8,2] * S),Round(C[8,3] * S)); //третья вершина
+  glColor3f(0,1,0);  glVertex3f(Round(C[7,1] * S),Round(C[7,2] * S),Round(C[7,3] * S)); //четвёртая вершина
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_QUADS); //рисуем первую боковую плоскость
+  glColor3f(0,0,1);  glVertex3i(Round(C[8,1] * S),Round(C[8,2] * S),Round(C[8,3] * S)); //первая вершина
+  glColor3f(0,0,1);  glVertex3f(Round(C[7,1] * S),Round(C[7,2] * S),Round(C[7,3] * S)); //вторая вершина
+  glColor3f(0,0,1);  glVertex3f(Round(C[6,1] * S),Round(C[6,2] * S),Round(C[6,3] * S)); //третья вершина
+  glColor3f(0,0,1);  glVertex3f(Round(C[5,1] * S),Round(C[5,2] * S),Round(C[5,3] * S)); //четвёртая вершина
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_QUADS); //рисуем вторую боковую плоскость
+  glColor3f(0,1,1);  glVertex3i(Round(C[1,1] * S),Round(C[1,2] * S),Round(C[1,3] * S)); //первая вершина
+  glColor3f(0,1,1);  glVertex3f(Round(C[2,1] * S),Round(C[2,2] * S),Round(C[2,3] * S)); //вторая вершина
+  glColor3f(0,1,1);  glVertex3f(Round(C[6,1] * S),Round(C[6,2] * S),Round(C[6,3] * S)); //третья вершина
+  glColor3f(0,1,1);  glVertex3f(Round(C[5,1] * S),Round(C[5,2] * S),Round(C[5,3] * S)); //четвёртая вершина
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_QUADS); //рисуем третью боковую плоскость
+  glColor3f(1,0,1);  glVertex3i(Round(C[1,1] * S),Round(C[1,2] * S),Round(C[1,3] * S)); //первая вершина
+  glColor3f(1,0,1);  glVertex3f(Round(C[5,1] * S),Round(C[5,2] * S),Round(C[5,3] * S)); //вторая вершина
+  glColor3f(1,0,1);  glVertex3f(Round(C[8,1] * S),Round(C[8,2] * S),Round(C[8,3] * S)); //третья вершина
+  glColor3f(1,0,1);  glVertex3f(Round(C[4,1] * S),Round(C[4,2] * S),Round(C[4,3] * S)); //четвёртая вершина
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_QUADS); //рисуем третью боковую плоскость
+  glColor3f(1,1,0);  glVertex3i(Round(C[2,1] * S),Round(C[2,2] * S),Round(C[2,3] * S)); //первая вершина
+  glColor3f(1,1,0);  glVertex3f(Round(C[3,1] * S),Round(C[3,2] * S),Round(C[3,3] * S)); //вторая вершина
+  glColor3f(1,1,0);  glVertex3f(Round(C[7,1] * S),Round(C[7,2] * S),Round(C[7,3] * S)); //третья вершина
+  glColor3f(1,1,0);  glVertex3f(Round(C[6,1] * S),Round(C[6,2] * S),Round(C[6,3] * S)); //четвёртая вершина
+  glEnd;
+end;
+ //-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[1,1] * S),Round(C[1,2] * S),Round(C[1,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[2,1] * S),Round(C[2,2] * S),Round(C[2,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[2,1] * S),Round(C[2,2] * S),Round(C[2,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[6,1] * S),Round(C[6,2] * S),Round(C[6,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[6,1] * S),Round(C[6,2] * S),Round(C[6,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[5,1] * S),Round(C[5,2] * S),Round(C[5,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[1,1] * S),Round(C[1,2] * S),Round(C[1,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[5,1] * S),Round(C[5,2] * S),Round(C[5,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[1,1] * S),Round(C[1,2] * S),Round(C[1,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[4,1] * S),Round(C[4,2] * S),Round(C[4,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[2,1] * S),Round(C[2,2] * S),Round(C[2,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[3,1] * S),Round(C[3,2] * S),Round(C[3,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[6,1] * S),Round(C[6,2] * S),Round(C[6,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[7,1] * S),Round(C[7,2] * S),Round(C[7,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[5,1] * S),Round(C[5,2] * S),Round(C[5,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[8,1] * S),Round(C[8,2] * S),Round(C[8,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[4,1] * S),Round(C[4,2] * S),Round(C[4,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[3,1] * S),Round(C[3,2] * S),Round(C[3,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[3,1] * S),Round(C[3,2] * S),Round(C[3,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[7,1] * S),Round(C[7,2] * S),Round(C[7,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[7,1] * S),Round(C[7,2] * S),Round(C[7,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[8,1] * S),Round(C[8,2] * S),Round(C[8,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  glBegin(GL_LINES); //рисуем линию
+  glColor3f(0,0,0); {раскрасим первую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[4,1] * S),Round(C[4,2] * S),Round(C[4,3] * S)); //позиция первой вершины
+  glColor3f(0,0,0); {раскрасим вторую вершину}  glLineWidth(5.0);  glVertex3f(Round(C[8,1] * S),Round(C[8,2] * S),Round(C[8,3] * S)); //позиция второй вершины
+  glEnd;
+//-------------------------------------------------------------------------
+  SwapBuffers(Canvas.Handle);
+end;
+///////////////////////////////////////////////////////////////////////////
+procedure TForm1.FormResize(Sender: TObject);
+begin
+  glViewport(0, 0, ClientWidth, ClientHeight); //выделяем область куда будет выводиться наш буфер
+  glMatrixMode ( GL_PROJECTION ); //переходим в матрицу проекции
+  glLoadIdentity;  //Сбрасываем текущую матрицу
+  glFrustum ( -1 , 1 , -1 , 1 , 1 , 1000.0 * S); //Область видимости
+  glMatrixMode ( GL_MODELVIEW ); //переходим в модельную матрицу
+  glLoadIdentity;//Сбрасываем текущую матрицу
+  gluLookAt(Dist * S * XZero,Dist * S * YZero,Dist * S * ZZero,0,0,0,0,0,1);  //позиция наблюдателя
+  InvalidateRect ( Handle,nil,false );  //перерисовка формы
+end;
+///////////////////////////////////////////////////////////////////////////
+
+end.

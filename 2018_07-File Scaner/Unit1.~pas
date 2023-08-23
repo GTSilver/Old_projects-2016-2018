@@ -1,0 +1,168 @@
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, Spin, ExtCtrls;
+
+type
+  TForm1 = class(TForm)
+    Button1: TButton;
+    LabeledEdit1: TLabeledEdit;
+    LabeledEdit2: TLabeledEdit;
+    SpinEdit1: TSpinEdit;
+    Label1: TLabel;
+    Button2: TButton;
+    Button3: TButton;
+    procedure Button1Click(Sender: TObject);
+    procedure SpinEdit1Change(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+  private
+
+  public
+
+  end;
+
+var
+  Form1: TForm1;
+  input_folder : string;
+  output_folder : string;
+  saved_input_folder_mass : array[-1..100] of string;
+  saved_output_folder_mass : array[-1..100] of string;
+  level : integer;
+  max_level : integer;
+  O : TextFile;
+
+implementation
+
+{$R *.dfm}
+procedure Scan;
+var
+i : integer;
+serched_file : TSearchRec;
+folder_number : integer;
+file_number : integer;
+input_folder_mass : array[0..11000] of string;
+output_folder_mass : array[0..11000] of string;
+file_mass : array[0..3,0..5000] of string;
+F: TextFile;
+begin
+i := 0;
+folder_number := 0;
+
+//Создание списка папок и счёт их количества
+if FindFirst(input_folder + '*',faAnyFile,serched_file) = 0 then
+begin
+  while FindNext(serched_file) = 0 do
+  begin
+    if ((serched_file.Attr = faDirectory) OR (serched_file.Attr = faDirectory + faReadOnly) OR (serched_file.Attr = faDirectory + faHidden) OR (serched_file.Attr = faDirectory + faArchive) OR (serched_file.Attr = faDirectory + faReadOnly + faHidden) OR (serched_file.Attr = faDirectory + faReadOnly + faHidden + faArchive) OR (serched_file.Attr = faDirectory + faHidden + faArchive) OR (serched_file.Attr = faDirectory + faReadOnly + faArchive)) AND (serched_file.Name <> '.') AND (serched_file.Name <> '..') then
+    begin
+    input_folder_mass[i] := serched_file.Name;
+    output_folder_mass[i] := serched_file.Name; //*
+    folder_number := folder_number + 1;
+    i := i + 1;
+    end;
+  end;
+end;
+FindClose(serched_file);
+
+//Сканирование файлов
+i := 0;
+file_number := 0;
+
+//Создание папок
+ForceDirectories(output_folder);
+
+if FindFirst(input_folder + '*.*',faAnyFile,serched_file) = 0 then
+begin
+  while FindNext(serched_file) = 0 do
+  begin
+    if (serched_file.Name <> '.') AND (serched_file.Name <> '..') then
+    begin
+    file_mass[0,i] := serched_file.Name;
+    file_mass[1,i] := inttostr(serched_file.Size);
+    file_mass[2,i] := inttostr(serched_file.Time);
+    file_mass[3,i] := inttostr(serched_file.Attr);
+    file_number := file_number + 1;
+    i := i + 1;
+    end;
+  end;
+end;
+FindClose(serched_file);
+
+//Создание текстового файла
+i := 0;
+writeln(O, input_folder);
+AssignFile(F, output_folder + 'Список файлов.txt');
+Rewrite(F);
+while i < file_number do
+begin
+  writeln(F, file_mass[0,i] + #9 + #9 + file_mass[1,i] + #9 + #9 + file_mass[2,i] + #9 + #9 + file_mass[3,i]);
+  i := i + 1;
+end;
+CloseFile(F);
+
+//Запоминаем исходную директорию
+saved_input_folder_mass[level] := input_folder;
+saved_output_folder_mass[level] := output_folder; //*
+
+//Переходим в следующую директорию
+i := 0;
+if (level + 1 <= max_level) AND (folder_number > 0) then
+begin
+  while i < folder_number do
+  begin
+    input_folder := input_folder + input_folder_mass[i] + '\';
+    output_folder := output_folder + output_folder_mass[i] + '\'; //*
+    level := level + 1;
+    Scan;
+    i := i + 1;
+  end;
+  input_folder := saved_input_folder_mass[level - 1];
+  output_folder := saved_output_folder_mass[level - 1]; //*
+  level := level - 1;
+end else
+begin
+  input_folder := saved_input_folder_mass[level - 1];
+  output_folder := saved_output_folder_mass[level - 1]; //*
+  level := level - 1;
+end;
+end;
+
+
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+level := 0;
+max_level := SpinEdit1.Value;
+input_folder := LabeledEdit1.Text;
+output_folder := LabeledEdit2.Text;
+  AssignFile(O, 'C:\Users\GTSilver\Desktop\TTT.txt');
+  Rewrite(O);
+Scan;
+Showmessage('End of scanning');
+end;
+
+procedure TForm1.SpinEdit1Change(Sender: TObject);
+begin
+if (SpinEdit1.Value < 0) then SpinEdit1.Value := 0;
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+begin
+LabeledEdit1.Text := '';
+LabeledEdit2.Text := '';
+end;
+
+procedure TForm1.Button3Click(Sender: TObject);
+var directory : string;
+begin
+directory := 'C:\Directory Scan Results' + inttostr(Random(99999-10000) + 10000) + '\';
+ForceDirectories(directory);
+LabeledEdit1.Text := 'C:\';
+LabeledEdit2.Text := directory;
+end;
+
+end.
